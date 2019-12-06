@@ -44,7 +44,7 @@ RUN apt-get update && apt-get install -y wget libpng-dev libssl-dev \
      cpanm -l /opt/cpanm Bio::DB::BigFile && \
      cd /opt
      
-CMD ['/bin/bash']
+CMD ["/bin/bash"]
 
 
      
