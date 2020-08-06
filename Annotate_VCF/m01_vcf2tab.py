@@ -30,6 +30,7 @@ effect_dict = {
     'splice_acceptor_variant':0.95,
     'splice_donor_variant':0.95,
     'stop_gained':0.95,
+    'splice_region_variant':0.94,
     'frameshift_variant':0.94,
     'stop_lost':0.9,
     'start_lost':0.93,
@@ -38,7 +39,6 @@ effect_dict = {
     'inframe_deletion':0.7,
     'missense_variant':0.7,
     'protein_altering_variant':0.7,
-    'splice_region_variant':0.69,
     'incomplete_terminal_codon_variant':0.9,
     'start_retained_variant':0.65,
     'stop_retained_variant':0.65,
@@ -170,7 +170,7 @@ def vcf2tab(vcf_file, tab_file):
                     csq_dict = update_prediction_score(csq_dict, 'CAROL')
                     csq_dict = update_prediction_score(csq_dict, 'Condel')
                     # remove some columns if exist
-                    drop_keys = ['Allele','Feature','Feature_type','INTRON',
+                    drop_keys = ['Allele','INTRON',
                                     'CDS_position','Protein_position',
                                      'ALLELE_NUM']
                     for drop in drop_keys:
