@@ -71,8 +71,7 @@ process ExtractPassVariants {
 
      script:
      """
-     bcftools view -i 'FILTER="PASS"' -r ${chrom} ${vcf} -O z -o ${sample}.${chrom}.inter.vcf.gz
-     bcftools view -e 'GT[0]="RR" && GT[1]="RR" && GT[4]="RR" && GT[5]="RR"' ${sample}.${chrom}.inter.vcf.gz -O z -o ${sample}.${chrom}.pass.vcf.gz
+     bcftools view -i 'FILTER="PASS"' -r ${chrom} ${vcf} -O z -o ${sample}.${chrom}.pass.vcf.gz
      tabix ${sample}.${chrom}.pass.vcf.gz
      """
 }
@@ -139,7 +138,7 @@ process VEP_annotate {
 
      script:
      """
-     if singularity run -B ${loftee}:/opt/loftee,$PWD,${vep_db},${ref_path},${CADD_path} ${params.singularity} vep -i ${vcf} --plugin LoF,loftee_path:/opt/loftee,human_ancestor_fa:/opt/loftee/human_ancestor_fa.gz,gerp_bigwig:/opt/loftee/gerp_conservation_scores.homo_sapiens.GRCh38.bw,conservation_file:/opt/loftee/phylocsf_gerp.sql --dir_plugins /opt/loftee --plugin Carol --plugin Condel,:/opt/.vep/Plugins/config/Condel/config,b --plugin ExACpLI,/opt/gnomad.v2.1.1.oe_lof.by_gene.txt --plugin LoFtool,/opt/.vep/Plugins/LoFtool_scores.txt --plugin CADD,${CADD_SNV},${CADD_INDEL} -o ${sample}.${chrom}.vep.vcf.gz --cache --force_overwrite --buffer_size 10000 --species homo_sapiens --assembly GRCh38 --dir ${vep_db} --offline --fork 1 --hgvs -e --fa ${ref_fa} --minimal --allele_number --check_existing --vcf --compress_output bgzip; then 
+     if singularity run -B /:/media ${params.singularity} vep -i ${vcf} --plugin LoF,loftee_path:/media/${loftee},human_ancestor_fa:/media/${loftee}/human_ancestor_fa.gz,gerp_bigwig:/media/${loftee}/gerp_conservation_scores.homo_sapiens.GRCh38.bw,conservation_file:/media/${loftee}/phylocsf_gerp.sql --dir_plugins /media/${loftee} --plugin Carol --plugin Condel,:/opt/.vep/Plugins/config/Condel/config,b --plugin ExACpLI,/opt/gnomad.v2.1.1.oe_lof.by_gene.txt --plugin LoFtool,/opt/.vep/Plugins/LoFtool_scores.txt --plugin CADD,${CADD_SNV},${CADD_INDEL} -o ${sample}.${chrom}.vep.vcf.gz --cache --force_overwrite --buffer_size 10000 --species homo_sapiens --assembly GRCh38 --dir /media/${vep_db} --offline --fork 1 --hgvs -e --fa ${ref_fa} --minimal --allele_number --check_existing --vcf --compress_output bgzip; then 
           tabix ${sample}.${chrom}.vep.vcf.gz
           echo ${sample}.${chrom}.vep.vcf.gz.tbi
      else
@@ -149,4 +148,3 @@ process VEP_annotate {
      fi
      """
 }
-
