@@ -3,7 +3,7 @@
 function intolerant score with observed/expected (oe) metric. Details are here:https://macarthurlab.org/2018/10/17/gnomad-v2-1/. So I downloaded the constraint file from gnomad and extract two columns (gene symbol and oe_lof).
 * Dockerfile_v1: commands to build the docker image that have VEP and plugins including LOFTEE, replace ExACpLI with gnomad. Better to use this compaired to Dockerfile.
 
-If you don't build the container by yourself, you can directly download from docker://shl198/vep_loftee:101.0_gnomad_pLI.
+If you don't want to build the container by yourself, you can directly download from docker://shl198/vep_loftee:101.0_gnomad_pLI.
 
 Run the vep annotation pipeline in HPC using singularity
 --------------------------------------------------------
@@ -14,9 +14,9 @@ Run the vep annotation pipeline in HPC using singularity
 4. Download the vep cache folder from 'http://ftp.ensembl.org/pub/release-101/variation/indexed_vep_cache/homo_sapiens_vep_101_GRCh38.tar.gz'.
 5. Download this folder <br />
    Example command of running vep: bolded parameters are the ones you need to change <br /> 
-	bsub -q short -o log.txt "singularity run -B /:/media /path/to/aingularity/image/file \
-	vep -i **/media/path/to/sample.vcf**  \
-		--plugin LoF,loftee_path:**/media/path/to/loftee**,human_ancestor_fa:**/media/path/to/human_ancestor_fa.gz**,gerp_bigwig:**/media/path/to/gerp_conservation_scores.homo_sapiens.GRCh38.bw**,conservation_file:**/media/path/to/loftee_grch38/phylocsf_gerp.sql** \
+        bsub -q short -o log.txt "singularity run -B /:/media /path/to/aingularity/image/file \
+	    vep -i **/media/path/to/sample.vcf**  \
+	    --plugin LoF,loftee_path:**/media/path/to/loftee**,human_ancestor_fa:**/media/path/to/human_ancestor_fa.gz**,gerp_bigwig:**/media/path/to/gerp_conservation_scores.homo_sapiens.GRCh38.bw**,conservation_file:**/media/path/to/loftee_grch38/phylocsf_gerp.sql** \
 		--dir_plugins **/media/path/to/loftee_grch38** \
 		--custom **/media/hpc/grid/wip_drm_targetsciences/projects/gnomAD/gnomad_v3/gnomad.genomes.r3.0.sites.chr16.vcf.bgz,gnomADg,vcf,exact,0,AF_afr,AF_amr,AF_asj,AF_eas,AF_fin,AF_nfe,AF_oth** \
 		--plugin Carol \
@@ -32,4 +32,5 @@ Run the vep annotation pipeline in HPC using singularity
 		--fa /media/path/to/GRCh38_vep101.fa \
 		--minimal  --compress_output gzip \
 		--allele_number --check_existing --vcf" <br />
-	There's one parameter for singularity that I need to explain here, the -B /:/media, this means the singularity mount the folder / in your local computer to /media in the container, so all the full path of the files in local computer would have a /media refix in the container.
+
+	There's one parameter for singularity that I need to explain here, the -B /:/media, this means the singularity mount the folder / in your local computer to /media in the container, so all the full path of the files in local computer would have a /media prefix in the container.
