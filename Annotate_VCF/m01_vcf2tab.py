@@ -16,12 +16,13 @@ parser = argparse.ArgumentParser(description='transfer vcf to table format')
 
 parser.add_argument('-i','--input',action='store',dest='vcf',help='input vcf file')
 parser.add_argument('-o','--output',action='store',dest='table',help='output table file')
+parser.add_argument('-g','--gt',action='store',dest='gt',help='if vcf has gt',default='yes')
 
 args = parser.parse_args()
 
 vcf_file = args.vcf
 tab_file = args.table
-
+genotype = args.gt
 
 
 # define scores of variants effects
@@ -74,14 +75,20 @@ def pick_most_severe_CSQ(csq_notes, csq_fields, effect_dict):
     * csq_fields: column names in the csq fields
     * effect_dict: {effect: score}
     """
+    gene_idx = csq_fields.index('Gene')
+    
     csq_records = csq_notes.split(',')
     csq_dict = OrderedDict()
-    csq_dict = {k:'' for k in csq_fields}
+    
     effect_idx = csq_fields.index('Consequence')
     for csq in csq_records: # loop each transcript
         csq_values = csq.split('|')
         # for a transcript with &, choose the most severe term
         effect = csq_values[effect_idx]
+        gene = csq_values[gene_idx]
+        if gene not in csq_dict:
+            csq_dict[gene] = {k:'' for k in csq_fields}
+            
         if '&' in effect:
             # get severe scores for each SO term in the effect
             rna_effects = effect.split('&')
@@ -93,10 +100,10 @@ def pick_most_severe_CSQ(csq_notes, csq_fields, effect_dict):
         else:
             max_effect = effect
         # update the server csq item
-        if effect_dict[csq_values[effect_idx]] > effect_dict[csq_dict['Consequence']]:
+        if effect_dict[csq_values[effect_idx]] > effect_dict[csq_dict[gene]['Consequence']]:
             for k,v in zip(csq_fields, csq_values):
-                csq_dict[k] = v
-    return csq_dict          
+                csq_dict[gene][k] = v
+    return csq_dict       
 
 
 def update_prediction_score(csq_dict, key):
@@ -156,39 +163,104 @@ def vcf2tab(vcf_file, tab_file):
                             k,v = f.split('=')
                             info_dict[k] = v
                         except:
-                            info_dict[k] = True
+                            info_dict[f] = True
                     # get samples genotype
                     genotypes = [samples_fmt_dict[s]['GT'] for s in samples]
-                    depth = [samples_fmt_dict[s]['DP'] for s in samples]
+                    # depth = [samples_fmt_dict[s]['DP'] for s in samples]
                     try:
                         csq_notes = re.search('(?<=CSQ=).+?(?=$)', info).group(0)
                     except:
                         continue
                     csq_dict = pick_most_severe_CSQ(csq_notes, csq_fields, effect_dict)
-                    csq_dict = update_prediction_score(csq_dict, 'SIFT')
-                    csq_dict = update_prediction_score(csq_dict, 'PolyPhen')
-                    csq_dict = update_prediction_score(csq_dict, 'CAROL')
-                    csq_dict = update_prediction_score(csq_dict, 'Condel')
-                    # remove some columns if exist
-                    drop_keys = ['Allele','INTRON',
-                                    'CDS_position','Protein_position',
-                                     'ALLELE_NUM']
-                    for drop in drop_keys:
-                        _ = csq_dict.pop(drop,None)
-                    # write to file
-                    if write_header: # hasn't write header yet
-                        keys = list(csq_dict.keys())
+                    for gene,gene_dict in csq_dict.items():
+                        gene_dict = update_prediction_score(gene_dict, 'SIFT')
+                        gene_dict = update_prediction_score(gene_dict, 'PolyPhen')
+                        gene_dict = update_prediction_score(gene_dict, 'CAROL')
+                        gene_dict = update_prediction_score(gene_dict, 'Condel')
+                        # remove some columns if exist
+                        drop_keys = ['Allele','INTRON',
+                                        'CDS_position','Protein_position',
+                                         'ALLELE_NUM']
+                        for drop in drop_keys:
+                            _ = gene_dict.pop(drop,None)
+                        # write to file
+                        if write_header: # hasn't write header yet
+                            keys = list(gene_dict.keys())
 
-                        header = ['chr','pos','ref','alt'] + keys + \
-                                ['gt_' + s for s in samples]
-                        out_line = '\t'.join(header) + '\n'
+                            header = ['chr','pos','ref','alt'] + keys + \
+                                    ['gt_' + s for s in samples]
+                            out_line = '\t'.join(header) + '\n'
+                            out.write(out_line.encode('utf-8'))
+                            write_header = False
+                        # write data
+                        csq_values = [v if v != '' else '-' for k,v in gene_dict.items()]
+                        row = [chrom,pos,ref,alt] + csq_values + \
+                                [g['GT'] for s,g in samples_fmt_dict.items()]
+                        out_line = '\t'.join(row) + '\n'
                         out.write(out_line.encode('utf-8'))
-                        write_header = False
-                    # write data
-                    csq_values = [v if v != '' else '-' for k,v in csq_dict.items()]
-                    row = [chrom,pos,ref,alt] + csq_values + \
-                            [g['GT'] for s,g in samples_fmt_dict.items()]
-                    out_line = '\t'.join(row) + '\n'
-                    out.write(out_line.encode('utf-8'))
 
-vcf2tab(vcf_file, tab_file)
+
+def vcf2tabNoGT(vcf_file, tab_file):
+    with gzip.open(vcf_file,'rt') as in_vcf, gzip.open(tab_file,'wb') as out:
+        write_header = True # writ header or not
+        for line in in_vcf:
+            if line.startswith('##INFO=<ID=CSQ'): # extract CSQ column names
+                try:
+                    csq_fields = re.search('(?<=Format: ).+?(?=\">)', line).group(0).split('|')
+                except:
+                    raise 'header does not have CSQ field, please annotate with VEP'
+            elif line.startswith('##'):
+                continue
+            else: # variants lines and column name lines are left and this step
+                items = line.strip().split('\t')
+                if line.startswith('#CHROM'): # column name line
+                    columns = items
+                    columns[0] = 'CHROM'
+                else:
+                    # build a dictionary,key is sample name
+                    # value is another dict, with format field as the key
+                    # get each column value
+                    chrom,pos,ID,ref,alt,qual,filt,info = items[0:8]
+                    # dictionary example {{sp1:{'GT':'0/1','DP':'53'}}}                    
+                    # build dictionary for info field
+                    info_dict = OrderedDict()
+                    for f in info.split(';'):
+                        try:
+                            k,v = f.split('=')
+                            info_dict[k] = v
+                        except:
+                            info_dict[f] = True                    
+                    try:
+                        csq_notes = re.search('(?<=CSQ=).+?(?=$)', info).group(0)
+                    except:
+                        continue
+                    csq_dict = pick_most_severe_CSQ(csq_notes, csq_fields, effect_dict)
+                    for gene,gene_dict in csq_dict.items():
+                        gene_dict = update_prediction_score(gene_dict, 'SIFT')
+                        gene_dict = update_prediction_score(gene_dict, 'PolyPhen')
+                        gene_dict = update_prediction_score(gene_dict, 'CAROL')
+                        gene_dict = update_prediction_score(gene_dict, 'Condel')
+                        # remove some columns if exist
+                        drop_keys = ['Allele','INTRON',
+                                        'CDS_position','Protein_position',
+                                         'ALLELE_NUM']
+                        for drop in drop_keys:
+                            _ = gene_dict.pop(drop,None)
+                        # write to file
+                        if write_header: # hasn't write header yet
+                            keys = list(gene_dict.keys())
+
+                            header = ['chr','pos','ref','alt'] + keys
+                            out_line = '\t'.join(header) + '\n'
+                            out.write(out_line.encode('utf-8'))
+                            write_header = False
+                        # write data
+                        csq_values = [v if v != '' else '-' for k,v in gene_dict.items()]
+                        row = [chrom,pos,ref,alt] + csq_values
+                        out_line = '\t'.join(row) + '\n'
+                        out.write(out_line.encode('utf-8'))
+
+if genotype == 'yes':
+    vcf2tab(vcf_file, tab_file)
+else:
+    vcf2tabNoGT(vcf_file,tab_file)
