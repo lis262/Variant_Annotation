@@ -10,10 +10,9 @@ Run the vep annotation pipeline in HPC using singularity
 
 1. Pull the image using the command: **singularity pull docker://shl198/vep_loftee:101.0_gnomad_pLI**, this will download image file **vep_loftee_101.0_gnomad_pLI.sif**.
 2. Download GRCh38 reference genome from ensembl(http://ftp.ensembl.org/pub/release-101/fasta/homo_sapiens/dna/Homo_sapiens.GRCh38.dna.primary_assembly.fa.gz). <br />
-3. Check this website 'https://github.com/konradjk/loftee/tree/grch38', download the loftee software. Then follow the instructions in readme to download file **human_ancestor_fa.gz**, and bigwig file **gerp_conservation_scores.homo_sapiens.GRCh38.bw**, and PhyloCSF file **phylocsf_gerp.sql**, finaly put the files into a loftee folder <br />.
+3. Check this website 'https://github.com/konradjk/loftee/tree/grch38', download the loftee software. Then follow the instructions in readme to download file **human_ancestor_fa.gz**, and bigwig file **gerp_conservation_scores.homo_sapiens.GRCh38.bw**, and PhyloCSF file **phylocsf_gerp.sql**, finaly put the files into a loftee folder. <br />
 4. Download the vep cache folder from 'http://ftp.ensembl.org/pub/release-101/variation/indexed_vep_cache/homo_sapiens_vep_101_GRCh38.tar.gz'.
-5. Download this folder <br />
-   Example command for running vep: file paths start with /media are the ones you need to change <br /> 
+5. Example command for running vep: file paths start with /media are the ones you need to change <br /> 
 
         bsub -q short -o log.txt "singularity run -B /:/media /path/to/aingularity/image/file \
         vep -i /media/path/to/sample.vcf \
@@ -32,6 +31,6 @@ Run the vep annotation pipeline in HPC using singularity
 		--offline --variant_class --fork 1 --hgvs -e \
 		--fa /media/path/to/GRCh38_vep101.fa \
 		--minimal  --compress_output gzip \
-		--allele_number --check_existing --vcf" <br />
+		--allele_number --check_existing --vcf"
 
 There's one parameter for singularity that I need to explain here, the -B /:/media, this means the singularity mount the folder / in your local computer to /media in the container, so all the full path of the files in local computer would have a /media prefix in the container.
