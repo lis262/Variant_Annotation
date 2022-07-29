@@ -13,19 +13,19 @@ Run the vep annotation pipeline in HPC using singularity
 3. Check this website 'https://github.com/konradjk/loftee/tree/grch38', download the loftee software. Then follow the instructions in readme to download file **human_ancestor_fa.gz**, and bigwig file **gerp_conservation_scores.homo_sapiens.GRCh38.bw**, and PhyloCSF file **phylocsf_gerp.sql**, finaly put the files into a loftee folder <br />.
 4. Download the vep cache folder from 'http://ftp.ensembl.org/pub/release-101/variation/indexed_vep_cache/homo_sapiens_vep_101_GRCh38.tar.gz'.
 5. Download this folder <br />
-   Example command of running vep: bolded parameters are the ones you need to change <br /> 
+   Example command for running vep: file paths start with /media are the ones you need to change <br /> 
 
         bsub -q short -o log.txt "singularity run -B /:/media /path/to/aingularity/image/file \
-        vep -i **/media/path/to/sample.vcf** \
-        --plugin LoF,loftee_path:**/media/path/to/loftee**,human_ancestor_fa:**/media/path/to/human_ancestor_fa.gz**,gerp_bigwig:**/media/path/to/gerp_conservation_scores.homo_sapiens.GRCh38.bw**,conservation_file:**/media/path/to/loftee_grch38/phylocsf_gerp.sql** \
-		--dir_plugins **/media/path/to/loftee_grch38** \
-		--custom **/media/hpc/grid/wip_drm_targetsciences/projects/gnomAD/gnomad_v3/gnomad.genomes.r3.0.sites.chr16.vcf.bgz,gnomADg,vcf,exact,0,AF_afr,AF_amr,AF_asj,AF_eas,AF_fin,AF_nfe,AF_oth** \
+        vep -i /media/path/to/sample.vcf \
+        --plugin LoF,loftee_path:/media/path/to/loftee,human_ancestor_fa:/media/path/to/human_ancestor_fa.gz,gerp_bigwig:/media/path/to/gerp_conservation_scores.homo_sapiens.GRCh38.bw,conservation_file:/media/path/to/loftee_grch38/phylocsf_gerp.sql \
+		--dir_plugins /media/path/to/loftee_grch38 \
+		--custom /media/hpc/grid/wip_drm_targetsciences/projects/gnomAD/gnomad_v3/gnomad.genomes.r3.0.sites.chr16.vcf.bgz,gnomADg,vcf,exact,0,AF_afr,AF_amr,AF_asj,AF_eas,AF_fin,AF_nfe,AF_oth \
 		--plugin Carol \
 		--plugin Condel,/opt/.vep/Plugins/config/Condel/config,b \
 		--plugin ExACpLI,/opt/gnomad.v2.1.1.oe_lof.by_gene.txt \
 		--plugin LoFtool,/opt/.vep/Plugins/LoFtool_scores.txt \
-		--plugin CADD,**/media/path/to/CADDv1_6/gnomad.genomes.r3.0.indel.tsv.gz \
-		-o /media/path/to/output.vcf.gz** \
+		--plugin CADD,/media/path/to/CADDv1_6/gnomad.genomes.r3.0.indel.tsv.gz \
+		-o /media/path/to/output.vcf.gz \
 		--cache --force_overwrite --buffer_size 10000 \
 		--species homo_sapiens --assembly GRCh38 \
 		--dir /media/path/to/vep_db_101_GRCH38 \
