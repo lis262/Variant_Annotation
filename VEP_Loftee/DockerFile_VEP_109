@@ -1,0 +1,32 @@
+FROM ensemblorg/ensembl-vep:release_109.3
+
+MAINTAINER ShangzhongLi <Shangzhong.Li@pfizer.com>
+
+ENV PATH /opt/miniconda/bin:$PATH
+
+# install conda
+SHELL ["/bin/bash", "-c"]
+USER root
+
+RUN apt update && apt install -y wget git \
+     gcc make
+
+RUN  cd /opt && \
+     wget --quiet https://repo.continuum.io/miniconda/Miniconda3-py39_23.1.0-1-Linux-x86_64.sh && \
+     chmod 755 Miniconda3-py39_23.1.0-1-Linux-x86_64.sh && \
+     ./Miniconda3-py39_23.1.0-1-Linux-x86_64.sh -b -p /opt/miniconda && \
+     rm Miniconda3-py39_23.1.0-1-Linux-x86_64.sh && \     
+     eval "$(/opt/miniconda/bin/conda shell.bash hook)" && \
+     # download vep plugin
+     git clone --branch release/109 https://github.com/Ensembl/VEP_plugins.git && \
+     mkdir .vep && \
+     mv VEP_plugins Plugins && \
+     mv Plugins .vep
+
+RUN conda install -y -c bioconda vt && \
+    conda install -y -c bioconda bcftools && \
+    conda install -y -c bioconda nextflow=20.07.1
+
+RUN conda install 
+     
+CMD ["/bin/bash"]
